@@ -1,0 +1,38 @@
+version: 0.2
+env:
+  variables:
+
+phases:
+  install:
+    commands:
+      - echo Entered the install phase...
+  pre_build:
+    commands:
+      - echo Entered the pre_build phase...
+  build:
+    commands:
+      - echo Entered the build phase...
+      - echo Build started on `date`
+      - ssh-keyscan -t rsa vs-ssh.visualstudio.com >> ~/.ssh/known_hosts
+      - cat ~/.ssh/known_hosts
+      - cd /tmp
+      - printenv
+      - git clone $REPO
+      - if [ ! -d /tmp/$PROJECT_PATH ]; then mkdir /tmp/$PROJECT_PATH; fi
+      - cd /tmp/$PROJECT_PATH
+      - if [[ $BRANCH ]]; then git checkout $BRANCH; fi
+      - cp /tmp/push-ecr.sh push-ecr.sh
+      - cp /tmp/dockerd.sh dockerd.sh
+      - cp /tmp/policy.json policy.json
+      - bash ./dockerd.sh
+      - bash ./build.sh > buildLog.txt
+      - sed $'s/[^[:print:]\t]//g' buildLog.txt
+      - bash ./push-ecr.sh --ECR_NAME $ECR_NAME-unittest --VERSION_TAG $VERSION_TAG #
+      - export unittest_ecr="$ECR_NAME-unittest:$VERSION_TAG"
+      - echo $unittest_ecr
+      - if [[ -f test.sh ]]; then bash ./test.sh; fi #trap test and only run next step if success or missing test
+      - bash ./push-ecr.sh --ECR_NAME $ECR_NAME --VERSION_TAG $VERSION_TAG #also unregister unittest_ecr
+  post_build:
+    commands:
+      - echo Entered the post_build phase...
+      - echo Build completed on `date`

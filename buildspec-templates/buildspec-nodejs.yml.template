@@ -1,0 +1,36 @@
+version: 0.2
+env:
+  variables:
+
+phases:
+  install:
+    commands:
+      - echo Entered the install phase...
+  pre_build:
+    commands:
+      - echo Entered the pre_build phase...
+  build:
+    commands:
+      - echo Entered the build phase...
+      - echo Build started on `date`
+      - ssh-keyscan -t rsa vs-ssh.visualstudio.com >> ~/.ssh/known_hosts
+      - cat ~/.ssh/known_hosts
+      - cd /tmp
+      - bash ./setup_aws_dev_profile.sh
+      - printenv
+      - git clone $REPO
+      - if [ ! -d /tmp/$PROJECT_PATH ]; then mkdir /tmp/$PROJECT_PATH; fi
+      - cd /tmp/$PROJECT_PATH
+      - if [ $BRANCH ]; then git checkout $BRANCH; fi
+      - cp /tmp/bundle.sh bundle.sh
+      - if [ -f build.sh ]; then bash ./build.sh; else npm install --no-color --production; fi
+      - npm install mocha -g --no-color
+      - echo Running UnitTests
+      - npm test --no-color > testLog.txt || true
+      - sed $'s/[^[:print:]\t]//g' testLog.txt
+      - echo Bundling Package and uploading to s3
+      - bash ./bundle.sh
+  post_build:
+    commands:
+      - echo Entered the post_build phase...
+      - echo Build completed on `date`

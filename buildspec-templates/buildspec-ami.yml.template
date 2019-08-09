@@ -1,0 +1,30 @@
+version: 0.2
+env:
+  variables:
+
+phases:
+  install:
+    commands:
+      - echo Entered the install phase...
+  pre_build:
+    commands:
+      - echo Entered the pre_build phase...
+  build:
+    commands:
+      - echo Entered the build phase...
+      - echo Build started on `date`
+      - ssh-keyscan -t rsa vs-ssh.visualstudio.com >> ~/.ssh/known_hosts
+      - cat ~/.ssh/known_hosts
+      - cd /tmp
+      - printenv
+      - git clone $REPO
+      - if [ ! -d /tmp/$PROJECT_PATH ]; then mkdir /tmp/$PROJECT_PATH; fi
+      - cd /tmp/$PROJECT_PATH
+      - if [ $BRANCH ]; then git checkout $BRANCH; fi
+      - cp /tmp/copy-ami.sh copy-ami.sh
+      - bash ./build.sh --AWS_REGION us-west-2
+      - bash ./copy-ami.sh
+  post_build:
+    commands:
+      - echo Entered the post_build phase...
+      - echo Build completed on `date`
